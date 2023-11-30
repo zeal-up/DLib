@@ -79,7 +79,7 @@ endif(WIN32)
 
 add_library(${PROJECT_NAME} ${LIB_SHARED} ${SRCS})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
-target_include_directories(${PROJECT_NAME} PUBLIC include/DUtils include/DUtilsCV include/DVision ${OpenCV_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PUBLIC include include/DUtils include/DUtilsCV include/DVision ${OpenCV_INCLUDE_DIRS})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 11)
 if (Boost_FOUND)
   target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
