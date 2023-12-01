@@ -225,19 +225,25 @@ public:
   
   /**
    * Draws keypoints on an image
+   * if angle is choose to draw, the size of the keypoints is used to draw the angle line
    * @param image
    * @param keypoints
    * @param useCartesianAngle if true, the angle of the keypoints is assumed
    *   to be in Cartesian axis. If false, the vision reference is used instead
    *   (X points right, Y points up)
-   * @param colorOctave if true, the keypoint color codes the keypoint octave
-   *   (1: red, 2: green, 3: blue, other: whie)
+   * @param colorOctave if true, the octave of the keypoints (kp.octave) is used to color
+   * the circle. (0 : red, 1 : green, 2 : blue, other : white)
+   * else, random color is used
+   * @param useKeypointSize if true, the size of the keypoints (kp.size) is used to draw
+   * @param drawAngle if true, the angle of the keypoints is drawn
    * @note OpenCV SURF keypoints use Cartesian coordinates
    * @note OpenCV ORB keypoints use vision coordinates
    */
   static void drawKeyPoints(cv::Mat &image, 
-    const std::vector<cv::KeyPoint> &keypoints, 
+    const std::vector<cv::KeyPoint> &keypoints,
     bool colorOctave = false,
+    bool useKeypointSize = false,
+    bool drawAngle = true,
     bool useCartesianAngle = false);
 
   /**
@@ -263,6 +269,26 @@ public:
     const cv::Mat &im2, const std::vector<cv::KeyPoint> &kp1,
     const std::vector<cv::KeyPoint> &kp2,
     const std::vector<int> &c1, const std::vector<int> &c2);
+
+  
+  /**
+   * Draws correspondences between two images on the given image.
+   *
+   * @param image The image on which the correspondences will be drawn.
+   * @param im1 The first image.
+   * @param im2 The second image.
+   * @param kp1 The keypoints in the first image.
+   * @param kp2 The keypoints in the second image.
+   * @param matches matches[i] is the index of the keypoint in kp2 that matches;
+   * if matches[i] == -1, then keypoints[i] has no match.
+   * @param drawUnmatchedKeypoints If true, keypoints that have no match will
+   * be drawn in the image.
+   */
+  static void drawCorrespondences(cv::Mat &image, const cv::Mat &im1,
+    const cv::Mat &im2, const std::vector<cv::KeyPoint> &kp1,
+    const std::vector<cv::KeyPoint> &kp2,
+    const std::vector<int> &matches,
+    bool drawUnmatchedKeypoints = false);
 
   /**
    * Creates and saves an image with correspondences

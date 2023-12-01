@@ -19,9 +19,20 @@ using namespace DUtilsCV;
 
 // ---------------------------------------------------------------------------
 
+namespace DUtilsCV
+{
+  #define RANDOM_COLOR cv::Scalar( \
+    int(((double)rand()/((double)RAND_MAX + 1.0)) * 256.0), \
+    int(((double)rand()/((double)RAND_MAX + 1.0)) * 256.0), \
+    int(((double)rand()/((double)RAND_MAX + 1.0)) * 256.0))
+}
+
+// ---------------------------------------------------------------------------
+
+
 void Drawing::drawKeyPoints(cv::Mat &image, 
     const std::vector<cv::KeyPoint> &keypoints,
-    bool colorOctave, bool useCartesianAngle)
+    bool colorOctave, bool useKeypointSize, bool drawAngle, bool useCartesianAngle)
 {
   cv::Scalar colors[4] = {
     cv::Scalar(0, 0, 255),
@@ -33,23 +44,40 @@ void Drawing::drawKeyPoints(cv::Mat &image,
   const double PI = 3.14159265;
 
   vector<cv::KeyPoint>::const_iterator it;
+
   for(it = keypoints.begin(); it != keypoints.end(); ++it)
   {
-    //float s = ((9.0f/1.2f) * it->size/10.0f) / 3.0f;
-    float s = it->size / 2.f;
-    //if(s < 3.f) s = 3.f;
-    
-    const cv::Scalar *color;
-    if(!colorOctave || it->octave < 1 || it->octave > 3)
-      color = &colors[3];
-    else
-      color = &colors[it->octave-1];
-    
+    float s;  // circle size
+    if (useKeypointSize) {
+      s = it->size / 2.f;
+    } else {
+      s = 3.f;
+    }
     int r1 = (int)(it->pt.y + 0.5);
     int c1 = (int)(it->pt.x + 0.5);
+    cv::Scalar color;
+    // if(!colorOctave || it->octave < 1 || it->octave > 3)
+    //   color = &colors[3];
+    // else
+    //   color = &colors[it->octave-1];
+    if (colorOctave) {
+      if (it->octave < 1 || it->octave > 3) {
+        color = colors[3];
+      } else {
+        color = colors[it->octave-1];
+      }
+    } else {
+      color = RANDOM_COLOR;
+    }
+
+    cv::circle(image, cv::Point(c1, r1), (int)s, color, 1);
     
-    cv::circle(image, cv::Point(c1, r1), (int)s, *color, 1);
-    
+    if (!drawAngle) {
+      continue;
+    }
+
+    // use keypoint size to draw angle
+    s = it->size / 2.f;
     if(it->angle >= 0)
     {
       // angle is in [0..360]
@@ -62,7 +90,7 @@ void Drawing::drawKeyPoints(cv::Mat &image,
       else
         r2 = (int)(s * sin(o) + it->pt.y + 0.5);
 
-      cv::line(image, cv::Point(c1, r1), cv::Point(c2, r2), *color);
+      cv::line(image, cv::Point(c1, r1), cv::Point(c2, r2), color);
     }
   }
 }
@@ -97,42 +125,50 @@ void Drawing::drawCorrespondences(cv::Mat &image, const cv::Mat &img1,
     const std::vector<cv::KeyPoint> &kp2,
     const std::vector<int> &c1, const std::vector<int> &c2)
 {
-  int rows = img1.rows + img2.rows;
-  int cols = (img1.cols > img2.cols ? img1.cols : img2.cols);
+  // int rows = img1.rows + img2.rows;
+  // int cols = (img1.cols > img2.cols ? img1.cols : img2.cols);
   
   cv::Mat aux1, aux2;
-  if(img1.channels() > 1)
-    cv::cvtColor(img1, aux1, cv::COLOR_RGB2GRAY);
-  else
-    aux1 = img1.clone();
+  // if(img1.channels() > 1)
+  //   cv::cvtColor(img1, aux1, cv::COLOR_RGB2GRAY);
+  // else
+  //   aux1 = img1.clone();
   
-  if(img2.channels() > 1)
-    cv::cvtColor(img2, aux2, cv::COLOR_RGB2GRAY);
-  else
-    aux2 = img2.clone();
+  // if(img2.channels() > 1)
+  //   cv::cvtColor(img2, aux2, cv::COLOR_RGB2GRAY);
+  // else
+  //   aux2 = img2.clone();
+
+  aux1 = img1.clone();
+  aux2 = img2.clone();
 
   Drawing::drawKeyPoints(aux1, kp1);
   Drawing::drawKeyPoints(aux2, kp2);
 
-  cv::Mat im = cv::Mat::zeros(rows, cols, CV_8UC1);
+  // cv::Mat im = cv::Mat::zeros(rows, cols, CV_8UC1);
 
-  cv::Rect roi;
-  roi.x = 0;
-  roi.y = 0;
-  roi.width = img1.cols;
-  roi.height = img1.rows;
+  // cv::Rect roi;
+  // roi.x = 0;
+  // roi.y = 0;
+  // roi.width = img1.cols;
+  // roi.height = img1.rows;
 
-  im(roi) = aux1 * 1;
+  // im(roi) = aux1 * 1;
   
-  roi.x = 0;
-  roi.y = img1.rows;
-  roi.width = img2.cols;
-  roi.height = img2.rows;
+  // roi.x = 0;
+  // roi.y = img1.rows;
+  // roi.width = img2.cols;
+  // roi.height = img2.rows;
 
-  im(roi) = aux2 * 1;
+  // im(roi) = aux2 * 1;
 	
-  // draw correspondences
-  cv::cvtColor(im, image, cv::COLOR_GRAY2RGB);
+  // // draw correspondences
+  // cv::cvtColor(im, image, cv::COLOR_GRAY2RGB);
+
+  // concatenate aux1 and aux2 to image
+  // clear image
+
+  cv::hconcat(aux1, aux2, image);
 
   for(unsigned int i = 0; i < c1.size(); ++i)
   {
@@ -141,7 +177,8 @@ void Drawing::drawCorrespondences(cv::Mat &image, const cv::Mat &img1,
     int px = (int)kp2[ c2[i] ].pt.x;
     int py = (int)kp2[ c2[i] ].pt.y;
 
-    py += img1.rows;
+    // py += img1.rows;
+    px += img1.cols;
 
     cv::Scalar color = cv::Scalar( 
       int(((double)rand()/((double)RAND_MAX + 1.0)) * 256.0),
@@ -153,6 +190,30 @@ void Drawing::drawCorrespondences(cv::Mat &image, const cv::Mat &img1,
 }
 
 // ---------------------------------------------------------------------------
+
+void Drawing::drawCorrespondences(cv::Mat &image, const cv::Mat &im1, const cv::Mat &im2,
+                                  const std::vector<cv::KeyPoint> &kp1,
+                                  const std::vector<cv::KeyPoint> &kp2,
+                                  const std::vector<int> &matches, bool drawUnmatchedKeypoints)
+{
+  std::vector<cv::DMatch> matches1to2;
+  std::vector<char> matchesMask;
+  for (size_t i = 0; i < matches.size(); ++i) {
+    matches1to2.push_back(cv::DMatch(i, matches[i], 0));
+    if (matches[i] >= 0) {
+      matchesMask.push_back(1);
+    } else {
+      matchesMask.push_back(0);
+    }
+  }
+
+  cv::DrawMatchesFlags flags = cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS;
+  if (drawUnmatchedKeypoints) {
+    flags = cv::DrawMatchesFlags::DEFAULT;
+  }
+  cv::drawMatches(im1, kp1, im2, kp2, matches1to2, image,
+                  cv::Scalar::all(-1), cv::Scalar::all(-1), matchesMask, flags);
+}
 
 void Drawing::drawReferenceSystem(cv::Mat &image, const cv::Mat &cTo,
     const cv::Mat &A, const cv::Mat &K, float length)
